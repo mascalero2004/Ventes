@@ -85,6 +85,35 @@ def generate_visualizations():
     plt.title("Répartition du CA par produit (Top 5)", fontsize=16, pad=20)
     plt.savefig('2_repartition_produits.png', dpi=300, bbox_inches='tight')
     plt.show()
+
+
+    query_top_produits = """
+    SELECT p.nom_produit, 
+           SUM(v.montant_total) as ca_total,
+           SUM(v.quantite) as quantite_totale
+    FROM Ventes v
+    JOIN Produits p ON v.id_produit = p.id_produit
+    GROUP BY p.nom_produit
+    ORDER BY ca_total DESC
+    LIMIT 5
+    """
+    top_produits = pd.read_sql_query(query_top_produits, conn)
+    
+    plt.figure(figsize=(10, 6))
+    barplot = sns.barplot(data=top_produits, x='ca_total', y='nom_produit', 
+                         hue='nom_produit', legend=False, palette='viridis')
+    plt.title("Top 5 des produits par chiffre d'affaires", fontsize=16, pad=20)
+    plt.xlabel("Chiffre d'affaires (€)", fontsize=12)
+    plt.ylabel("Produit", fontsize=12)
+    barplot.xaxis.set_major_formatter(FuncFormatter(formatter_euros))
+    
+    for index, value in enumerate(top_produits['ca_total']):
+        barplot.text(value, index, f'€{value:,.0f}', ha='left', va='center', fontsize=10)
+    
+    plt.tight_layout()
+    plt.savefig('3_top5_produits.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
     
     # ==============================================
     # HEATMAP CORRIGÉE (VERSION À GARDER)
@@ -136,7 +165,7 @@ def generate_visualizations():
     ax.add_patch(plt.Rectangle((1, 0), 1, 24, fill=False, edgecolor='blue', lw=2, linestyle='--'))  # Lundi
 
     plt.tight_layout()
-    plt.savefig('3_heatmap_ventes_corrigee.png', dpi=300, bbox_inches='tight')
+    plt.savefig('4_heatmap_ventes_corrigee.png', dpi=300, bbox_inches='tight')
     plt.show()
 
     # ==============================================
@@ -174,11 +203,42 @@ def generate_visualizations():
     
     plt.suptitle('Analyse des ventes par type de client', fontsize=16, y=1.05)
     plt.tight_layout()
-    plt.savefig('4_analyse_clients.png', dpi=300, bbox_inches='tight')
+    plt.savefig('5_analyse_clients.png', dpi=300, bbox_inches='tight')
     plt.show()
+
+    try:
+            query_top_clients = """
+            SELECT c.nom, 
+                SUM(v.montant_total) as ca_total,
+                COUNT(v.id_vente) as nb_achats
+            FROM Ventes v
+            JOIN Clients c ON v.id_client = c.id_client
+            GROUP BY c.nom
+            ORDER BY ca_total DESC
+            LIMIT 5
+            """
+            top_clients = pd.read_sql_query(query_top_clients, conn)
+            
+            plt.figure(figsize=(10, 6))
+            barplot = sns.barplot(data=top_clients, x='ca_total', y='nom', 
+                                hue='nom', legend=False, palette='rocket')
+            plt.title("Top 5 des clients par chiffre d'affaires", fontsize=16, pad=20)
+            plt.xlabel("Chiffre d'affaires (€)", fontsize=12)
+            plt.ylabel("Client", fontsize=12)
+            barplot.xaxis.set_major_formatter(FuncFormatter(formatter_euros))
+            
+            for index, value in enumerate(top_clients['ca_total']):
+                barplot.text(value, index, f'€{value:,.0f}', ha='left', va='center', fontsize=10)
+            
+            plt.tight_layout()
+            plt.savefig('6_top5_clients.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    except Exception as e:
+            print(f"Erreur lors de la génération du graphique des clients: {str(e)}")
     
     conn.close()
     print("Visualisations générées avec succès")
+    
 
 if __name__ == "__main__":
     generate_visualizations()
